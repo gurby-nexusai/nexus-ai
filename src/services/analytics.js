@@ -82,7 +82,7 @@ export const detectAppPages = () => {
     {
       name: 'Login Page',
       url: '/login',
-      html: '<html><head><title>Login - Safe AI Marketplace</title><meta name="description" content="Login to access AI tools"></head><body><h1>Login</h1></body></html>',
+      html: '<html><head><title>Login - Nexus AI Marketplace</title><meta name=\"description\" content=\"Login to access AI tools\"></head><body><h1>Login</h1></body></html>',
       detected: true
     },
     {

@@ -134,7 +134,7 @@ function MarketplaceContent() {
       <header>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1400px', margin: '0 auto' }}>
           <div>
-            <h1>🛡️ Safe AI Marketplace</h1>
+            <h1>🚀 Nexus AI Marketplace</h1>
             <p>Progressive AI adoption for enterprises - All engagement tracked & analyzed</p>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
