@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Support - AI ROI Platform</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .support-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 600px;
+    }
+
+    .chat-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header h2 {
+      font-size: 1.3rem;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      background: #f9fafb;
+    }
+
+    .message {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .message.ai .message-avatar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .message.user .message-avatar {
+      background: #e5e7eb;
+    }
+
+    .message-content {
+      max-width: 70%;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      line-height: 1.5;
+    }
+
+    .message.ai .message-content {
+      background: white;
+      border: 1px solid #e5e7eb;
+    }
+
+    .message.user .message-content {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .message-time {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 0.25rem;
+    }
+
+    .input-area {
+      padding: 1.5rem;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .customer-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .form-group {
+      flex: 1;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .start-btn {
+      padding: 0.75rem 2rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .start-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .start-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .chat-input-wrapper {
+      display: none;
+      gap: 0.75rem;
+    }
+
+    .chat-input-wrapper.active {
+      display: flex;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 24px;
+      font-size: 0.95rem;
+      resize: none;
+      font-family: inherit;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .send-btn {
+      padding: 0.75rem 1.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .send-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .welcome-message {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: #6b7280;
+    }
+
+    .welcome-message h3 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💬 Customer Support</h1>
+      <p>Get instant help from our AI-powered support team</p>
+    </div>
+
+    <div class="support-card">
+      <div class="chat-header">
+        <h2>Support Chat</h2>
+        <div class="status">
+          <span class="status-dot"></span>
+          <span id="statusText">Online</span>
+        </div>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="welcome-message">
+          <h3>👋 Welcome to Support</h3>
+          <p>Please provide your details below to start chatting with our AI assistant</p>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <form class="customer-form" id="customerForm">
+          <div class="form-row">
+            <div class="form-group">
+              <input type="text" id="customerName" placeholder="Your Name *" required>
+            </div>
+            <div class="form-group">
+              <input type="email" id="customerEmail" placeholder="Email Address *" required>
+            </div>
+          </div>
+          <button type="submit" class="start-btn">Start Chat</button>
+        </form>
+
+        <div class="chat-input-wrapper" id="chatInputWrapper">
+          <textarea 
+            class="chat-input" 
+            id="messageInput" 
+            placeholder="Type your message..."
+            rows="1"
+          ></textarea>
+          <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script>
+    let currentCustomer = null;
+    let currentTicket = null;
+    let conversationHistory = [];
+    let lastMessageCount = 0;
+    let pollInterval = null;
+    let humanRequestCount = 0;
+
+    // Start chat session
+    document.getElementById('customerForm').onsubmit = async (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('customerName').value;
+      const email = document.getElementById('customerEmail').value;
+      
+      currentCustomer = { name, email, id: Date.now() };
+      
+      // Create ticket
+      const tickets = JSON.parse(localStorage.getItem('external_tickets') || '[]');
+      currentTicket = {
+        id: Date.now(),
+        customerId: currentCustomer.id,
+        customerName: name,
+        customerEmail: email,
+        subject: 'Support Request',
+        status: 'Open',
+        priority: 'Medium',
+        assignedAgent: null,
+        createdAt: new Date().toISOString(),
+        messages: []
+      };
+      tickets.push(currentTicket);
+      localStorage.setItem('external_tickets', JSON.stringify(tickets));
+      
+      // Hide form, show chat
+      document.getElementById('customerForm').style.display = 'none';
+      document.getElementById('chatInputWrapper').classList.add('active');
+      
+      // Clear welcome message
+      document.getElementById('messages').innerHTML = '';
+      
+      // Add welcome message
+      addMessage('ai', `Hi ${name}! 👋 I'm your AI support assistant. How can I help you today?`);
+      
+      // Start polling for agent messages
+      pollInterval = setInterval(checkForNewMessages, 1000);
+    };
+
+    function checkForNewMessages() {
+      const tickets = JSON.parse(localStorage.getItem('external_tickets') || '[]');
+      const ticket = tickets.find(t => t.id === currentTicket.id);
+      
+      if (ticket) {
+        // Update current ticket reference
+        currentTicket = ticket;
+        
+        if (ticket.messages.length > lastMessageCount) {
+          // New messages from agent
+          const newMessages = ticket.messages.slice(lastMessageCount);
+          newMessages.forEach(msg => {
+            if (msg.type === 'agent') {
+              displayMessage('agent', msg.text, msg.timestamp);
+            }
+          });
+          lastMessageCount = ticket.messages.length;
+        }
+        
+        // Update status indicator if escalated
+        if (ticket.escalated) {
+          document.getElementById('statusText').textContent = `Connected to ${ticket.assignedAgent || 'Agent'}`;
+        }
+      }
+    }
+
+    function displayMessage(type, text, timestamp) {
+      const messagesDiv = document.getElementById('messages');
+      const time = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const avatar = type === 'ai' ? '🤖' : type === 'agent' ? '👨‍💼' : '👤';
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type === 'agent' ? 'ai' : type}`;
+      messageDiv.innerHTML = `
+        <div class="message-avatar">${avatar}</div>
+        <div>
+          <div class="message-content">${text}</div>
+          <div class="message-time">${time}</div>
+        </div>
+      `;
+      
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function addMessage(type, text) {
+      displayMessage(type, text);
+      
+      // Save to ticket
+      if (currentTicket) {
+        currentTicket.messages.push({
+          type,
+          text,
+          timestamp: new Date().toISOString()
+        });
+        lastMessageCount = currentTicket.messages.length;
+        updateTicket();
+      }
+    }
+
+    function updateTicket() {
+      const tickets = JSON.parse(localStorage.getItem('external_tickets') || '[]');
+      const index = tickets.findIndex(t => t.id === currentTicket.id);
+      if (index !== -1) {
+        tickets[index] = currentTicket;
+        localStorage.setItem('external_tickets', JSON.stringify(tickets));
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+      if (!message) return;
+      
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+      
+      // Add user message
+      addMessage('user', message);
+      input.value = '';
+      
+      // Check if escalated to human
+      if (currentTicket && currentTicket.escalated) {
+        // Human agent will respond - don't call AI
+        sendBtn.disabled = false;
+        input.focus();
+        return;
+      }
+      
+      // Check if customer is asking for human
+      const humanKeywords = ['human', 'agent', 'person', 'representative', 'speak to someone', 'talk to someone', 'real person'];
+      const asksForHuman = humanKeywords.some(keyword => message.toLowerCase().includes(keyword));
+      
+      if (asksForHuman) {
+        humanRequestCount++;
+        
+        if (humanRequestCount >= 2) {
+          // Auto-escalate after 2 requests
+          await escalateToHuman();
+          sendBtn.disabled = false;
+          input.focus();
+          return;
+        }
+      }
+      
+      // Get AI response
+      conversationHistory.push({ role: 'user', content: message });
+      
+      try {
+        const response = await fetch('http://localhost:11434/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama3.1',
+            messages: [
+              { role: 'system', content: 'You are a helpful customer support assistant. Be friendly, professional, and concise. Help customers with their questions and issues.' },
+              ...conversationHistory
+            ],
+            stream: false
+          })
+        });
+        
+        const data = await response.json();
+        const aiResponse = data.message.content;
+        
+        conversationHistory.push({ role: 'assistant', content: aiResponse });
+        addMessage('ai', aiResponse);
+      } catch (error) {
+        addMessage('ai', 'Sorry, I encountered an error. Please try again or contact our support team directly.');
+      }
+      
+      sendBtn.disabled = false;
+      input.focus();
+    }
+
+    async function escalateToHuman() {
+      // Find available agent
+      const agents = JSON.parse(localStorage.getItem('external_agents') || '[]');
+      const availableAgents = agents.filter(a => a.status === 'Available');
+      
+      if (availableAgents.length === 0) {
+        addMessage('ai', 'I apologize, but there are no available human agents at the moment. Please try again during office hours or in about 30 minutes. Your email and conversation details have been sent to our manager for follow-up.');
+        currentTicket.escalated = true;
+        currentTicket.status = 'Escalated';
+        currentTicket.priority = 'High';
+        currentTicket.escalatedAt = new Date().toISOString();
+        currentTicket.managerNotified = true;
+        currentTicket.notificationSentAt = new Date().toISOString();
+        updateTicket();
+        return;
+      }
+      
+      // Get agent with least active tickets
+      const agent = availableAgents.reduce((min, a) => 
+        (a.activeTickets || 0) < (min.activeTickets || 0) ? a : min
+      );
+      
+      // Update ticket
+      currentTicket.escalated = true;
+      currentTicket.status = 'Escalated';
+      currentTicket.priority = 'High';
+      currentTicket.assignedAgent = agent.name;
+      currentTicket.escalatedAt = new Date().toISOString();
+      updateTicket();
+      
+      // Update agent workload
+      agent.activeTickets = (agent.activeTickets || 0) + 1;
+      const agentIndex = agents.findIndex(a => a.id === agent.id);
+      agents[agentIndex] = agent;
+      localStorage.setItem('external_agents', JSON.stringify(agents));
+      
+      // Notify customer
+      addMessage('ai', `I'm connecting you to ${agent.name}. They'll be with you in just a moment.`);
+      document.getElementById('statusText').textContent = `Connected to ${agent.name}`;
+    }
+
+    // Send button click
+    document.getElementById('sendBtn').onclick = sendMessage;
+
+    // Enter to send
+    document.getElementById('messageInput').onkeydown = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    };
+  </script>
+</body>
+</html>
