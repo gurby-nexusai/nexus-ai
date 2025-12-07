@@ -100,6 +100,12 @@ Resources:
       InstanceType: !Ref InstanceType
       ImageId: !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            DeleteOnTermination: true
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           DeviceIndex: '0'
@@ -115,11 +121,11 @@ Resources:
           # Update system
           yum update -y
           
-          # Install Node.js 18
-          curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+          # Install Node.js 20
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
           yum install -y nodejs git python3.11 python3.11-pip
           
-          # Install Ollama
+          # Install Ollama (but don't download model yet - saves time and space)
           curl -fsSL https://ollama.com/install.sh | sh
           systemctl enable ollama
           systemctl start ollama
@@ -181,10 +187,8 @@ Resources:
           sleep 5
           systemctl start nexus-frontend
           
-          # Download Ollama model in background
-          sudo -u ec2-user ollama pull llama3.1 &
-          
           echo "Nexus AI installation complete!"
+          echo "To download Ollama model, run: sudo -u ec2-user ollama pull llama3.1"
       Tags:
         - Key: Name
           Value: NexusAI-Server
