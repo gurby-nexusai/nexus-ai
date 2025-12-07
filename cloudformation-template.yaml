@@ -237,8 +237,8 @@ Resources:
           
           # Clone and setup application
           cd /home/ec2-user
-          git clone https://github.com/YOUR_REPO/nexus-ai.git
-          cd nexus-ai/frontend/airoi-ui/my-app
+          git clone https://github.com/gurby-nexusai/nexus-ai.git
+          cd nexus-ai
           
           # Install dependencies
           npm install
@@ -301,7 +301,7 @@ Resources:
           
           # Clone and setup application
           cd /home/ec2-user
-          git clone https://github.com/YOUR_REPO/nexus-ai.git
+          git clone https://github.com/gurby-nexusai/nexus-ai.git
           cd nexus-ai/backend
           
           # Create virtual environment
