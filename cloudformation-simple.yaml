@@ -1,0 +1,207 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Nexus AI - Simplified Deployment'
+
+Parameters:
+  KeyName:
+    Description: EC2 Key Pair for SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t3.large
+    AllowedValues:
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: NexusAI-VPC
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: NexusAI-IGW
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: NexusAI-PublicSubnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: NexusAI-PublicRouteTable
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Nexus AI
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 5174
+          ToPort: 5174
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: NexusAI-SG
+
+  NexusAIInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref SecurityGroup
+          SubnetId: !Ref PublicSubnet
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+          set -x
+          
+          # Update system
+          yum update -y
+          
+          # Install Node.js 18
+          curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+          yum install -y nodejs git python3.11 python3.11-pip
+          
+          # Install Ollama
+          curl -fsSL https://ollama.com/install.sh | sh
+          systemctl enable ollama
+          systemctl start ollama
+          
+          # Clone repository
+          cd /home/ec2-user
+          git clone https://github.com/gurby-nexusai/nexus-ai.git
+          chown -R ec2-user:ec2-user nexus-ai
+          
+          # Setup frontend
+          cd /home/ec2-user/nexus-ai
+          sudo -u ec2-user npm install
+          
+          # Setup backend
+          cd /home/ec2-user/nexus-ai/backend
+          python3.11 -m venv venv
+          source venv/bin/activate
+          pip install flask flask-cors pandas numpy scikit-learn scipy
+          
+          # Create frontend service
+          cat > /etc/systemd/system/nexus-frontend.service <<'EOF'
+          [Unit]
+          Description=Nexus AI Frontend
+          After=network.target
+          
+          [Service]
+          Type=simple
+          User=ec2-user
+          WorkingDirectory=/home/ec2-user/nexus-ai
+          ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0
+          Restart=always
+          Environment=NODE_ENV=production
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          
+          # Create backend service
+          cat > /etc/systemd/system/nexus-backend.service <<'EOF'
+          [Unit]
+          Description=Nexus AI Backend
+          After=network.target
+          
+          [Service]
+          Type=simple
+          User=ec2-user
+          WorkingDirectory=/home/ec2-user/nexus-ai/backend
+          ExecStart=/home/ec2-user/nexus-ai/backend/venv/bin/python api_server.py
+          Restart=always
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          
+          # Start services
+          systemctl daemon-reload
+          systemctl enable nexus-frontend nexus-backend
+          systemctl start nexus-backend
+          sleep 5
+          systemctl start nexus-frontend
+          
+          # Download Ollama model in background
+          sudo -u ec2-user ollama pull llama3.1 &
+          
+          echo "Nexus AI installation complete!"
+      Tags:
+        - Key: Name
+          Value: NexusAI-Server
+
+Outputs:
+  ApplicationURL:
+    Description: URL to access Nexus AI
+    Value: !Sub 'http://${NexusAIInstance.PublicIp}:5174'
+  
+  PublicIP:
+    Description: Public IP address
+    Value: !GetAtt NexusAIInstance.PublicIp
+  
+  SSHCommand:
+    Description: SSH command to connect
+    Value: !Sub 'ssh -i nexus-ai-key.pem ec2-user@${NexusAIInstance.PublicIp}'
+  
+  CheckLogs:
+    Description: Command to check installation logs
+    Value: 'sudo tail -f /var/log/user-data.log'
