@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, Target, Zap, Shield, AlertCircle, CheckCircle, ArrowRight, Database, Download, RefreshCw } from 'lucide-react';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import LicenseManager from './services/license';
+import TrialModal from './components/TrialModal';
 
 const AIROI = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -18,6 +20,50 @@ const AIROI = () => {
   const [loading, setLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [userInput, setUserInput] = useState('');
+  
+  // License management state
+  const [licenseManager] = useState(new LicenseManager());
+  const [showTrialModal, setShowTrialModal] = useState(false);
+  const [licenseStatus, setLicenseStatus] = useState(null);
+  const [trialDaysLeft, setTrialDaysLeft] = useState(0);
+
+  // License check on app startup
+  useEffect(() => {
+    checkLicense();
+  }, []);
+
+  const checkLicense = async () => {
+    const status = await licenseManager.validateLicense();
+    setLicenseStatus(status);
+    
+    if (!status.valid) {
+      setShowTrialModal(true);
+    } else if (status.trialDaysLeft !== undefined) {
+      setTrialDaysLeft(status.trialDaysLeft);
+    }
+  };
+
+  const handleTrialStart = async (email, company) => {
+    const result = await licenseManager.startTrial(email, company);
+    if (result.success) {
+      await checkLicense();
+    }
+    return result;
+  };
+
+  // Don't render main app if license is invalid
+  if (licenseStatus && !licenseStatus.valid) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <TrialModal
+          onTrialStart={handleTrialStart}
+          onClose={() => setShowTrialModal(false)}
+          reason={licenseStatus.reason}
+        />
+      </div>
+    );
+  }
+
   const [currentAgent, setCurrentAgent] = useState(null); // Track current agent for chaining
 
   // Agent definitions based on capabilities and limitations
@@ -530,6 +576,12 @@ Analyze the conversation history and provide helpful guidance.`;
         <div>
           <h1 className="text-3xl font-bold mb-2">AIROI - AI Return on Investment</h1>
           <p className="text-blue-100">Systematic AI transformation assessment and roadmap generation</p>
+          {trialDaysLeft > 0 && (
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm bg-yellow-500 bg-opacity-20 text-yellow-100 border border-yellow-400">
+              <AlertCircle className="w-4 h-4 mr-1" />
+              Trial: {trialDaysLeft} days left
+            </div>
+          )}
         </div>
         <button
           onClick={resetAll}
